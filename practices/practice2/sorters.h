@@ -1,165 +1,162 @@
-#ifndef SORTERS_H
-#define SORTERS_H
+#ifndef SORTERS_H // Include guard start to prevent double inclusion
+#define SORTERS_H // Define guard
 
-#include <vector>
-#include <algorithm>
-#include <omp.h>
-#include <iostream>
+#include <vector>    // Include vector library for dynamic arrays
+#include <algorithm> // Include algorithms library for swap function
+#include <omp.h>     // Include OpenMP library for parallel processing
+#include <iostream>  // Include iostream for potential I/O
 
-// Sequential Bubble Sort
-void bubbleSort(std::vector<int>& arr) {
-    int n = arr.size();
-    bool swapped;
-    for (int i = 0; i < n - 1; i++) {
-        swapped = false;
-        for (int j = 0; j < n - i - 1; j++) {
-            if (arr[j] > arr[j + 1]) {
-                std::swap(arr[j], arr[j + 1]);
-                swapped = true;
+// Sequential Bubble Sort implementation
+void bubbleSort(std::vector<int>& arr) { // Function definition
+    int n = arr.size();                  // Get current size of vector
+    bool swapped;                        // Flag to track if a swap occurred in the pass
+    for (int i = 0; i < n - 1; i++) {    // Outer loop for each pass
+        swapped = false;                 // Reset swap flag for this pass
+        for (int j = 0; j < n - i - 1; j++) { // Inner loop comparing adjacent elements
+            if (arr[j] > arr[j + 1]) {        // Check if elements are in wrong order
+                std::swap(arr[j], arr[j + 1]); // Swap the elements
+                swapped = true;                // Mark that a swap occurred
             }
         }
-        if (!swapped) break;
+        if (!swapped) break; // Optimization: Exit if array is already sorted
     }
 }
 
 // Parallel Bubble Sort (Odd-Even Transposition Sort)
 // Optimized to reduce fork/join overhead by keeping threads alive.
-void bubbleSortParallel(std::vector<int>& arr) {
-    int n = arr.size();
-    bool swapped = true;
+void bubbleSortParallel(std::vector<int>& arr) { // Function definition
+    int n = arr.size(); // Get size of vector
+    bool swapped = true; // Initialize to true to enter the while loop
 
-    #pragma omp parallel
+    #pragma omp parallel // Start parallel region
     {
-        while (true) {
-            // Check exit condition from previous iteration
-            #pragma omp barrier
-            if (!swapped) break;
+        while (true) { // Loop until the entire array is sorted
+            // Check exit condition determined in previous iteration
+            #pragma omp barrier // Synchronize all threads
+            if (!swapped) break; // Exit loop if no swaps occurred previously
             
-            // Result for this iteration
-            #pragma omp barrier
-            #pragma omp single
-            swapped = false;
-            // Implicit barrier at end of single
+            // Prepare for the current iteration
+            #pragma omp barrier // Ensure all threads see 'break' check before resetting
+            #pragma omp single  // Execute block by a single thread
+            swapped = false;    // Reset global swap flag
+            // Implicit barrier exists at end of 'omp single'
             
             // Odd phase
-            // Use logical swapped to avoid contention on shared 'swapped'
-            bool local_swapped = false;
+            // Use local variable to reduce cache contention on 'swapped'
+            bool local_swapped = false; // Thread-local swap flag
 
-            #pragma omp for
-            for (int i = 1; i < n - 1; i += 2) {
-                if (arr[i] > arr[i + 1]) {
-                    std::swap(arr[i], arr[i + 1]);
-                    local_swapped = true;
+            #pragma omp for // Distribute loop iterations across threads
+            for (int i = 1; i < n - 1; i += 2) { // Iterate over odd indices
+                if (arr[i] > arr[i + 1]) { // Check if out of order
+                    std::swap(arr[i], arr[i + 1]); // Swap elements
+                    local_swapped = true; // Mark local swap
                 }
             }
 
             // Even phase
-            #pragma omp for
-            for (int i = 0; i < n - 1; i += 2) {
-                if (arr[i] > arr[i + 1]) {
-                    std::swap(arr[i], arr[i + 1]);
-                    local_swapped = true;
+            #pragma omp for // Distribute loop iterations across threads
+            for (int i = 0; i < n - 1; i += 2) { // Iterate over even indices
+                if (arr[i] > arr[i + 1]) { // Check if out of order
+                    std::swap(arr[i], arr[i + 1]); // Swap elements
+                    local_swapped = true; // Mark local swap
                 }
             }
 
-            if (local_swapped) {
-                // If any thread swapped, we need another pass.
-                // Relaxed consistency is fine as long as we eventually see it.
-                // Atomic write ensures visibility.
-                if (!swapped) { // optimization to avoid excessive writes
-                    #pragma omp atomic write
-                    swapped = true;
+            // Update global swapped flag if needed
+            if (local_swapped) { // If this thread performed a swap
+                // If any thread swapped, multiple passes might be needed.
+                // We use atomic write to safely update the shared variable.
+                if (!swapped) { // Optimization check to avoid unnecessary writes
+                    #pragma omp atomic write // Atomic operation for thread safety
+                    swapped = true; // Set global flag to true
                 }
             }
         }
     }
 }
 
-// Sequential Selection Sort
-void selectionSort(std::vector<int>& arr) {
-    int n = arr.size();
-    for (int i = 0; i < n - 1; i++) {
-        int min_idx = i;
-        for (int j = i + 1; j < n; j++) {
-            if (arr[j] < arr[min_idx])
-                min_idx = j;
+// Sequential Selection Sort implementation
+void selectionSort(std::vector<int>& arr) { // Function definition
+    int n = arr.size(); // Get size of vector
+    for (int i = 0; i < n - 1; i++) { // Loop through each element
+        int min_idx = i; // Assume current element is minimum
+        for (int j = i + 1; j < n; j++) { // Scan remaining unsorted part
+            if (arr[j] < arr[min_idx]) // Check for smaller element
+                min_idx = j; // Update index of new minimum
         }
-        std::swap(arr[i], arr[min_idx]);
+        std::swap(arr[i], arr[min_idx]); // Swap current element with found minimum
     }
 }
 
-// Parallel Selection Sort
-// Optimized to keep parallel region outer.
-void selectionSortParallel(std::vector<int>& arr) {
-    int n = arr.size();
-    int min_idx;
-    int min_val;
+// Parallel Selection Sort implementation
+// Optimized to keep parallel region outer to reduce overhead.
+void selectionSortParallel(std::vector<int>& arr) { // Function definition
+    int n = arr.size(); // Get size of vector
+    int min_idx;        // Shared variable for index of minimum element
+    int min_val;        // Shared variable for value of minimum 
 
-    #pragma omp parallel
+    #pragma omp parallel // Start parallel region
     {
-        for (int i = 0; i < n - 1; i++) {
-            // Initialize shared min for this pass
-            #pragma omp single
+        for (int i = 0; i < n - 1; i++) { // Loop through array positions (sequential flow)
+            // Initialize shared min variables for this pass
+            #pragma omp single // Executed by one thread
             {
-                min_idx = i;
-                min_val = arr[i];
+                min_idx = i;      // Set current index as min index
+                min_val = arr[i]; // Set current value as min value
             }
-            // Implicit barrier - all threads wait for init
+            // Implicit barrier ensures all threads wait for initialization
 
-            // Thread-local search
-            int local_min_idx = -1;
-            int local_min_val = min_val;
+            // Thread-local search for minimum in the remaining part
+            int local_min_idx = -1;       // Initialize local min index
+            int local_min_val = min_val;  // Initialize with current global min
 
-            #pragma omp for nowait
-            for (int j = i + 1; j < n; j++) {
-                if (arr[j] < local_min_val) {
-                    local_min_val = arr[j];
-                    local_min_idx = j;
+            #pragma omp for nowait // Distribute loop, no implied barrier at end
+            for (int j = i + 1; j < n; j++) { // key loop for finding min
+                if (arr[j] < local_min_val) { // Compare against local min
+                    local_min_val = arr[j];   // Update local min value
+                    local_min_idx = j;        // Update local min index
                 }
             }
 
-            // Reduce to global min
-            // Only update if we found something smaller than current global min_val
-            // Note: Since we initialized local_min_val to min_val, 
-            // we only update if we found strictly smaller.
-            if (local_min_val < min_val) {
-                #pragma omp critical
+            // Reduce local minimums to global minimum
+            if (local_min_val < min_val) { // Optimization: only attempt update if locally found smaller
+                #pragma omp critical // Critical section for safe shared update
                 {
-                    if (local_min_val < min_val) { // Double-check pattern
-                        min_val = local_min_val;
-                        min_idx = local_min_idx;
+                    if (local_min_val < min_val) { // Double check inside lock
+                        min_val = local_min_val; // Update global min value
+                        min_idx = local_min_idx; // Update global min index
                     }
                 }
             }
-            #pragma omp barrier
+            #pragma omp barrier // Synchronize threads before swapping
 
-            // Swap
-            #pragma omp single
-            std::swap(arr[i], arr[min_idx]);
-            // Implicit barrier - wait for swap before next iter
+            // Perform swap
+            #pragma omp single // Executed by one thread
+            std::swap(arr[i], arr[min_idx]); // Swap element at i with found minimum
+            // Implicit barrier ensures swap completes before next pass
         }
     }
 }
 
-// Sequential Insertion Sort
-void insertionSort(std::vector<int>& arr) {
-    int n = arr.size();
-    for (int i = 1; i < n; i++) {
-        int key = arr[i];
-        int j = i - 1;
-        while (j >= 0 && arr[j] > key) {
-            arr[j + 1] = arr[j];
-            j = j - 1;
+// Sequential Insertion Sort implementation
+void insertionSort(std::vector<int>& arr) { // Function definition
+    int n = arr.size(); // Get size of vector
+    for (int i = 1; i < n; i++) { // Loop from second element
+        int key = arr[i]; // Store current element value
+        int j = i - 1; // Start comparison with previous element
+        while (j >= 0 && arr[j] > key) { // Shift elements greater than key
+            arr[j + 1] = arr[j]; // Move element one position ahead
+            j = j - 1; // Move to previous position
         }
-        arr[j + 1] = key;
+        arr[j + 1] = key; // Place key in its correct position
     }
 }
 
-// Parallel Insertion Sort
-// Wrapper for consistency.
-void insertionSortParallel(std::vector<int>& arr) {
-    // Insertion sort is inherently serial.
-    insertionSort(arr);
+// Parallel Insertion Sort implementation
+// Wrapper for consistency as Insertion Sort is hard to parallelize efficiently.
+void insertionSortParallel(std::vector<int>& arr) { // Function definition
+    // Insertion sort contains loop dependencies preventing simple parallelization
+    insertionSort(arr); // Fallback to sequential implementation
 }
 
-#endif
+#endif // SORTERS_H

@@ -229,6 +229,7 @@ void runTask3() {
 // ЗАДАЧА 4. СОРТИРОВКА НА GPU С ИСПОЛЬЗОВАНИЕМ CUDA
 // =================================================================================================
 
+//
 #ifdef __CUDACC__
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>

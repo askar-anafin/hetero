@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero",
-      "program": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/build/Debug/outDebug",
+      "cwd": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/assignments/assignment2",
+      "program": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/assignments/assignment2/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

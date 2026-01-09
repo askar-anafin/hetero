@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/practices/practice1",
-      "program": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/practices/practice1/build/Debug/outDebug",
+      "cwd": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/practices/practice5",
+      "program": "c:/Users/docto.JUSTSMRNDMGUY/OneDrive/Documents/GitHub/hetero/practices/practice5/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

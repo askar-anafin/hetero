@@ -8,6 +8,7 @@
 #include <curand.h>
 // Include C math library for mathematical functions
 #include <cmath>
+#include <cfloat> // For FLT_MAX
 // Include I/O manipulators for formatting output
 #include <iomanip>
 
@@ -59,10 +60,9 @@ __global__ void reductionGlobal(float* input, float* output, int n) {
         sum += input[i]; // Accumulate values handled by this thread
     }
     
-    // Write to global memory (each thread writes its partial sum)
-    if (tid < n) { // Bounds check
-        output[tid] = sum; // Store partial sum in global memory
-    }
+    // Write to global memory using atomicAdd (accumulating partial sums per block)
+    // d_output must be initialized to 0
+    atomicAdd(&output[blockIdx.x], sum);
 }
 
 // CUDA kernel: Reduction using shared memory (faster approach)
@@ -96,32 +96,57 @@ __global__ void bubbleSortKernel(float* data, int n, int chunkSize) {
     
     int blockStart = blockIdx.x * chunkSize; // Calculate starting index for this block's chunk
     int tid = threadIdx.x; // Thread index within block
-    int globalIdx = blockStart + tid; // Global index in the data array
     
-    // Load chunk into shared memory
-    if (globalIdx < n && tid < chunkSize) { // Check bounds
-        shared[tid] = data[globalIdx]; // Load element from global to shared memory
-    } else if (tid < chunkSize) { // If out of bounds but within chunk
-        shared[tid] = FLT_MAX; // Fill with maximum float value (sentinel)
+    // Load chunk into shared memory (handling chunks > blockDim)
+    for (int k = 0; k < chunkSize; k += blockDim.x) {
+        int idx = tid + k;
+        if (idx < chunkSize) {
+            int globalIdx = blockStart + idx;
+            if (globalIdx < n) {
+                shared[idx] = data[globalIdx];
+            } else {
+                shared[idx] = FLT_MAX; // Padding
+            }
+        }
     }
     __syncthreads(); // Wait for entire chunk to be loaded
     
-    // Bubble sort in shared memory
+    // Parallel Odd-Even Transposition Sort (Bubble Sort variant for parallel)
     int actualSize = min(chunkSize, n - blockStart); // Calculate actual valid size of chunk
-    for (int i = 0; i < actualSize - 1; i++) { // Outer loop: number of passes
-        for (int j = tid; j < actualSize - i - 1; j += blockDim.x) { // Parallel comparison phase
-            if (shared[j] > shared[j + 1]) { // If elements are out of order
-                float temp = shared[j]; // Swap elements
-                shared[j] = shared[j + 1]; // Move smaller element left
-                shared[j + 1] = temp; // Move larger element right
+    
+    for (int i = 0; i < actualSize; i++) {
+        // Even phase: (0,1), (2,3), ...
+        int idx = 2 * tid;
+        if (idx < actualSize - 1) {
+            if (shared[idx] > shared[idx+1]) {
+                float temp = shared[idx];
+                shared[idx] = shared[idx+1];
+                shared[idx+1] = temp;
             }
         }
-        __syncthreads(); // Synchronize after each pass
+        __syncthreads();
+        
+        // Odd phase: (1,2), (3,4), ...
+        idx = 2 * tid + 1;
+        if (idx < actualSize - 1) {
+            if (shared[idx] > shared[idx+1]) {
+                float temp = shared[idx];
+                shared[idx] = shared[idx+1];
+                shared[idx+1] = temp;
+            }
+        }
+        __syncthreads();
     }
     
     // Write sorted chunk back to global memory
-    if (globalIdx < n && tid < chunkSize) { // Check bounds
-        data[globalIdx] = shared[tid]; // Copy sorted data back to global memory
+    for (int k = 0; k < chunkSize; k += blockDim.x) {
+        int idx = tid + k;
+        if (idx < chunkSize) {
+            int globalIdx = blockStart + idx;
+            if (globalIdx < n) {
+                data[globalIdx] = shared[idx];
+            }
+        }
     }
 }
 
@@ -141,12 +166,12 @@ __global__ void mergeSortKernel(float* input, float* output, int n, int width) {
     int rightSize = rightEnd - rightStart; // Size of right subarray
     int totalSize = leftSize + rightSize; // Total number of elements to merge
     
-    // Load data into shared memory
-    if (tid < leftSize) { // If thread handles left subarray element
-        shared[tid] = input[leftStart + tid]; // Load left element
+    // Load data into shared memory (Loop to cover all elements)
+    for (int i = tid; i < leftSize; i += blockDim.x) {
+        shared[i] = input[leftStart + i];
     }
-    if (tid < rightSize) { // If thread handles right subarray element
-        shared[leftSize + tid] = input[rightStart + tid]; // Load right element after left
+    for (int i = tid; i < rightSize; i += blockDim.x) {
+        shared[leftSize + i] = input[rightStart + i];
     }
     __syncthreads(); // Wait for both subarrays to be loaded
     
@@ -156,24 +181,91 @@ __global__ void mergeSortKernel(float* input, float* output, int n, int width) {
         int leftIdx = 0, rightIdx = 0; // Indices for left and right subarrays
         int pos = i; // Current output position (currently unused)
         
-        // Binary search to find position in merged array
-        int low = 0, high = leftSize; // Binary search bounds in left subarray
-        while (low < high) { // Binary search loop
-            int mid = (low + high) / 2; // Calculate middle position
-            if (shared[mid] <= (i - mid < rightSize ? shared[leftSize + i - mid] : FLT_MAX)) {
-                low = mid + 1; // Search upper half
+        // Binary search to find position
+        int low = max(0, i - rightSize);
+        int high = min(leftSize, i);
+        
+        while (low < high) {
+            int mid = (low + high) / 2;
+            float leftVal = shared[mid];
+            // rightPrev corresponds to B[i - mid - 1]
+            float rightPrev;
+            int rIdx = i - mid - 1;
+            if (rIdx < 0) rightPrev = -FLT_MAX;
+            else if (rIdx >= rightSize) rightPrev = FLT_MAX;
+            else rightPrev = shared[leftSize + rIdx];
+            
+            if (leftVal > rightPrev) {
+                high = mid;
             } else {
-                high = mid; // Search lower half
+                low = mid + 1;
             }
         }
-        leftIdx = low; // Number of elements from left subarray before position i
-        rightIdx = i - leftIdx; // Number of elements from right subarray before position i
         
-        // Determine which element to place at position i
-        if (rightIdx >= rightSize || (leftIdx < leftSize && shared[leftIdx] <= shared[leftSize + rightIdx])) {
-            output[blockStart + i] = shared[leftIdx]; // Take from left subarray
+        leftIdx = low;
+        rightIdx = i - leftIdx;
+        
+        float lVal = (leftIdx < leftSize) ? shared[leftIdx] : FLT_MAX;
+        float rVal = (rightIdx < rightSize) ? shared[leftSize + rightIdx] : FLT_MAX;
+        
+        if (rightIdx >= rightSize || (leftIdx < leftSize && lVal <= rVal)) {
+            output[blockStart + i] = lVal; // Take from left subarray
         } else {
-            output[blockStart + i] = shared[leftSize + rightIdx]; // Take from right subarray
+            output[blockStart + i] = rVal; // Take from right subarray
+        }
+    }
+}
+
+
+
+// CUDA kernel: Merge two sorted subarrays using global memory (for large arrays)
+__global__ void mergeSortGlobalKernel(float* input, float* output, int n, int width) {
+    int tid = threadIdx.x;
+    int blockStart = 2 * blockIdx.x * width;
+    
+    int leftStart = blockStart;
+    int leftEnd = min(leftStart + width, n);
+    int rightStart = leftEnd;
+    int rightEnd = min(rightStart + width, n);
+    
+    int leftSize = leftEnd - leftStart;
+    int rightSize = rightEnd - rightStart;
+    int totalSize = leftSize + rightSize;
+    
+    if (leftSize <= 0) return;
+    
+    for (int i = tid; i < totalSize; i += blockDim.x) {
+        // Binary search to find position
+        int low = max(0, i - rightSize);
+        int high = min(leftSize, i);
+        
+        while (low < high) {
+            int mid = (low + high) / 2;
+            float leftVal = input[leftStart + mid];
+            // rightPrev corresponds to B[i - mid - 1]
+            float rightPrev;
+            int rIdx = i - mid - 1;
+            if (rIdx < 0) rightPrev = -FLT_MAX;
+            else if (rIdx >= rightSize) rightPrev = FLT_MAX;
+            else rightPrev = input[rightStart + rIdx];
+            
+            if (leftVal > rightPrev) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        
+        int leftIdx = low;
+        int rightIdx = i - leftIdx;
+        
+        float lVal = (leftIdx < leftSize) ? input[leftStart + leftIdx] : FLT_MAX;
+        float rVal = (rightIdx < rightSize) ? input[rightStart + rightIdx] : FLT_MAX;
+        
+        if (rightIdx >= rightSize || (leftIdx < leftSize && lVal <= rVal)) {
+            output[blockStart + i] = lVal;
+        } else {
+            output[blockStart + i] = rVal;
         }
     }
 }
@@ -197,8 +289,9 @@ float testReduction(float* d_data, int n, bool useShared, float& elapsed) {
         reductionShared<<<blocksPerGrid, threadsPerBlock, threadsPerBlock * sizeof(float)>>>(d_data, d_output, n);
         // Launch kernel with dynamically allocated shared memory
     } else { // If using global memory reduction
+        CUDA_CHECK(cudaMemset(d_output, 0, blocksPerGrid * sizeof(float))); // Initialize accumulator for atomics
         reductionGlobal<<<blocksPerGrid, threadsPerBlock>>>(d_data, d_output, n);
-        // Launch kernel without shared memory
+        // Launch kernel without shared memory (using atomics)
     }
     
     CUDA_CHECK(cudaEventRecord(stop)); // Record stop time
@@ -251,8 +344,13 @@ void testSorting(float* d_data, int n, float& elapsed) {
         int numMerges = (n + 2 * width - 1) / (2 * width); // Calculate number of merge operations
         int sharedSize = 2 * width * sizeof(float); // Shared memory size for two subarrays
         
-        mergeSortKernel<<<numMerges, threadsPerBlock, sharedSize>>>(d_input, d_output, n, width);
-        // Launch merge kernel with shared memory
+        // Check if shared memory size fits (approx 32KB safety limit, max is usually 48KB or more)
+        if (sharedSize <= 32768) {
+            mergeSortKernel<<<numMerges, threadsPerBlock, sharedSize>>>(d_input, d_output, n, width);
+        } else {
+            mergeSortGlobalKernel<<<numMerges, threadsPerBlock>>>(d_input, d_output, n, width);
+        }
+        // Launch selected merge kernel
         CUDA_CHECK(cudaDeviceSynchronize()); // Wait for merge to complete
         
         // Swap input and output pointers for next iteration
@@ -342,6 +440,7 @@ int main() {
         bool sorted = true; // Flag to track if array is sorted
         for (int i = 0; i < n - 1 && i < 1000; i++) { // Check first 1000 elements (or all if less)
             if (h_data[i] > h_data[i + 1]) { // If elements are out of order
+                std::cout << "Sort Failed at index " << i << ": " << h_data[i] << " > " << h_data[i+1] << std::endl;
                 sorted = false; // Set flag to false
                 break; // Stop checking
             }

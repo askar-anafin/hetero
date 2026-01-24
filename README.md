@@ -1,49 +1,49 @@
-# Heterogeneous Parallelization in C++
+# Гетерогенные вычисления на C++
 
-This repository contains a collection of assignments and practical works focused on Heterogeneous Computing, Parallel Programming, and High-Performance Computing using C++, OpenMP, CUDA, MPI, and OpenCL.
+Этот репозиторий содержит коллекцию заданий и практических работ, посвященных гетерогенным вычислениям, параллельному программированию и высокопроизводительным вычислениям (HPC) с использованием C++, OpenMP, CUDA, MPI и OpenCL.
 
-## 📂 Repository Structure
+## 📂 Структура репозитория
 
-The repository is divided into two main sections:
+Репозиторий разделен на два основных раздела:
 
-- **Assignments**: Major distinct tasks covering key parallelization concepts.
-- **Practices**: Hands-on laboratory works and smaller practice tasks.
+- **Задания (Assignments)**: Крупные отдельные задачи, охватывающие ключевые концепции распараллеливания.
+- **Практики (Practices)**: Лабораторные работы и небольшие практические задания.
 
-### 📝 Assignments
+### 📝 Задания
 
-| Assignment | Description | Technologies |
-|------------|-------------|--------------|
-| **Assignment 1** | **Introduction to Parallelization**<br>Basics of C++ memory management, sequential vs. parallel search (Min/Max), and Parallel Average calculation using OpenMP Reductions. | C++, OpenMP |
-| **Assignment 2** | **Heterogeneous Computing Fundamentals**<br>Theoretical/Practical tasks on CPU vs GPU architecture. Includes Parallel Min/Max (OpenMP), Selection Sort (OpenMP), and Merge Sort (CUDA). | C++, OpenMP, CUDA |
-| **Assignment 3** | **CUDA Programming Basics**<br>Implementation of basic CUDA kernels, memory management, and thread hierarchy. | C++, CUDA |
-| **Assignment 4** | **Hybrid Computing (MPI + CUDA)**<br>Advanced distributed computing task involving MPI for process communication and CUDA for local node acceleration. Includes distributed sorting algorithms. | C++, MPI (MS-MPI), CUDA |
+| Задание | Описание | Технологии |
+| ------- | -------- | ---------- |
+| **Assignment 1** | **Введение в распараллеливание** - Основы управления памятью в C++, последовательный и параллельный поиск (Min/Max), и параллельное вычисление среднего значения с использованием OpenMP Reductions. | C++, OpenMP |
+| **Assignment 2** | **Основы гетерогенных вычислений** - Теоретические и практические задачи по архитектуре CPU и GPU. Включает параллельный Min/Max (OpenMP), сортировку выбором (OpenMP) и сортировку слиянием (CUDA). | C++, OpenMP, CUDA |
+| **Assignment 3** | **Основы программирования на CUDA** - Реализация базовых ядер CUDA, управление памятью и иерархия потоков. | C++, CUDA |
+| **Assignment 4** | **Гибридные вычисления (MPI + CUDA)** - Продвинутая задача распределенных вычислений с использованием MPI для коммуникации процессов и CUDA для ускорения на локальных узлах. Включает распределенные алгоритмы сортировки. | C++, MPI (MS-MPI), CUDA |
 
-### 🔬 Practices
+### 🔬 Практики
 
-| Practice | Topic | Description |
-|----------|-------|-------------|
-| **Practice 1-3** | **Basics** | Introductory labs for C++ and CUDA environment setup. |
-| **Practice 4** | **Parallel Algorithms** | Implementation of parallel reduction, scanning (prefix sum), and sorting algorithms on GPU. |
-| **Practice 5** | **Data Structures** | Implementation of Parallel Stack and Queue data structures on GPU using Atomic Operations. |
-| **Practice 6** | **OpenCL** | Introduction to OpenCL framework. Includes **Vector Addition** and **Matrix Multiplication** tasks. |
-| **Practice 7** | **Scan & Reduction** | Advanced optimization of prefix sums and reduction algorithms on GPU. |
-| **Practice 8-10**| **Advanced Topics** | PDF descriptions for advanced practical works. |
+| Практика | Тема | Описание |
+| -------- | ---- | -------- |
+| **Practice 1-3** | **Основы** | Вводные лабораторные работы по настройке окружения C++ и CUDA. |
+| **Practice 4** | **Параллельные алгоритмы** | Реализация параллельной редукции, сканирования (префиксной суммы) и алгоритмов сортировки на GPU. |
+| **Practice 5** | **Структуры данных** | Реализация параллельных структур данных Стек и Очередь на GPU с использованием атомарных операций. |
+| **Practice 6** | **OpenCL** | Введение во фреймворк OpenCL. Включает задачи на **сложение векторов** и **умножение матриц**. |
+| **Practice 7** | **Сканирование и Редукция** | Продвинутая оптимизация префиксных сумм и алгоритмов редукции на GPU. |
+| **Practice 8-10**| **Продвинутые темы** | PDF-описания для продвинутых практических работ. |
 
 ---
 
-## 🛠 Prerequisites
+## 🛠 Предварительные требования
 
-To build and run the projects in this repository, you will need the following tools:
+Для сборки и запуска проектов в этом репозитории вам понадобятся следующие инструменты:
 
-1. **C++ Compiler**: `g++` (MinGW) or `cl.exe` (MSVC) with C++11 support or higher.
-2. **CUDA Toolkit**: Required for compiling `.cu` files and running CUDA applications (NVCC compiler).
-3. **OpenMP**: Usually included with GCC/MSVC. Ensure your compiler supports it (e.g., `-fopenmp` for GCC).
-4. **MS-MPI**: Microsoft MPI SDK and Runtime are required for **Assignment 4**.
-5. **OpenCL SDK**: Required for **Practice 6** (typically included with NVIDIA CUDA Toolkit or GPU drivers).
+1. **Компилятор C++**: `g++` (MinGW) или `cl.exe` (MSVC) с поддержкой C++11 или выше.
+2. **CUDA Toolkit**: Требуется для компиляции файлов `.cu` и запуска приложений CUDA (компилятор NVCC).
+3. **OpenMP**: Обычно включен в GCC/MSVC. Убедитесь, что ваш компилятор поддерживает его (например, флаг `-fopenmp` для GCC).
+4. **MS-MPI**: Microsoft MPI SDK и Runtime требуются для **Assignment 4**.
+5. **OpenCL SDK**: Требуется для **Practice 6** (обычно включен в NVIDIA CUDA Toolkit или драйверы GPU).
 
-## 🚀 How to Build and Run
+## 🚀 Как собрать и запустить
 
-### Standard C++/OpenMP
+### Стандартный C++/OpenMP
 
 ```bash
 g++ main.cpp -o app -fopenmp
@@ -57,25 +57,25 @@ nvcc main.cu -o app
 ./app
 ```
 
-### Assignment 4 (Hybrid MPI + CUDA)
+### Assignment 4 (Гибридный MPI + CUDA)
 
-Navigate to the `assignments/assignment4` directory and use the provided build script:
+Перейдите в директорию `assignments/assignment4` и используйте предоставленный скрипт сборки:
 
 ```cmd
 cd assignments/assignment4
 build.bat
 ```
 
-*Note: This usually requires `mpiexec` to run the distributed executable.*
+*Примечание: Для запуска распределенного исполняемого файла обычно требуется `mpiexec`.*
 
 ### Practice 6 (OpenCL)
 
-Practice 6 typically requires linking against OpenCL. Check the `start.bat` or `CMakeLists.txt` inside the folder for specific build instructions.
+Practice 6 обычно требует линковки с OpenCL. Проверьте `start.bat` или `CMakeLists.txt` внутри папки для конкретных инструкций по сборке.
 
-## 📚 Topics Covered
+## 📚 Рассмотренные темы
 
-- **Parallel Patterns**: Map, Reduce, Scan, Scatter, Gather.
-- **Memory Models**: Shared Memory, Global Memory, Constant Memory.
-- **Synchronization**: Atomics, Barriers, Mutexes (CPU).
-- **Heterogeneous Architectures**: CPU (Latency-oriented) vs GPU (Throughput-oriented).
-- **APIs**: NVIDIA CUDA, OpenMP, MPI, OpenCL.
+- **Параллельные шаблоны**: Map, Reduce, Scan, Scatter, Gather.
+- **Модели памяти**: Разделяемая память (Shared), Глобальная память (Global), Константная память (Constant).
+- **Синхронизация**: Атомики (Atomics), Барьеры (Barriers), Мьютексы (Mutexes - CPU).
+- **Гетерогенные архитектуры**: CPU (ориентированные на задержку) vs GPU (ориентированные на пропускную способность).
+- **API**: NVIDIA CUDA, OpenMP, MPI, OpenCL.
